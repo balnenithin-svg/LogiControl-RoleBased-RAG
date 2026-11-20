@@ -1,0 +1,42 @@
+
+DOCUMENT: Delivery Delay Management SOP
+DOCUMENT_ID: LOG-DELAY-002
+CATEGORY: Delay Management
+
+PURPOSE:
+This document defines the standard procedure for identifying, investigating, and resolving delayed shipments.
+
+1. DELAY IDENTIFICATION
+- Compare actual shipment progress with the scheduled delivery timeline.
+- Identify shipments that have exceeded their expected delivery milestones.
+- Record the Order ID and delay duration.
+
+2. DELAY INVESTIGATION
+- Check the latest available shipment status.
+- Review historical tracking locations and timestamps.
+- Verify dispatch and delivery records.
+- Identify possible causes such as traffic, weather, warehouse delays, or operational issues.
+- Do not assume a cause without supporting evidence.
+
+3. CORRECTIVE ACTIONS
+- Contact the responsible operations team.
+- Coordinate with the dispatcher.
+- Evaluate alternative delivery arrangements when appropriate.
+- Record the investigation findings and actions taken.
+
+4. ESCALATION
+- Escalate unresolved delays to the Operations Manager.
+- Escalate critical customer-impacting delays to the appropriate support team.
+- Maintain an investigation record for every escalated shipment.
+
+5. CUSTOMER UPDATES
+- Inform Customer Support about verified delay information.
+- Communicate revised delivery estimates only when confirmed.
+- Maintain clear and professional communication.
+
+6. RESOLUTION
+- Verify that the shipment has resumed progress or been delivered.
+- Update the shipment investigation record.
+- Close the exception after confirmation.
+
+END OF DOCUMENT

@@ -1,0 +1,45 @@
+
+DOCUMENT: Dispatch and Escalation Policy
+DOCUMENT_ID: LOG-DISPATCH-003
+CATEGORY: Dispatch Management
+
+PURPOSE:
+This policy defines dispatch responsibilities, shipment coordination, and escalation procedures.
+
+1. DISPATCH RESPONSIBILITIES
+- Review shipment orders before dispatch.
+- Verify destination, delivery details, and assigned resources.
+- Confirm shipment readiness before dispatch.
+- Update dispatch status in the logistics system.
+
+2. DISPATCH PROCESS
+- Receive the confirmed shipment order.
+- Verify package and delivery information.
+- Assign the available delivery resource.
+- Record dispatch time and shipment details.
+- Notify Operations about dispatch exceptions.
+
+3. ROUTE COORDINATION
+- Review available route information.
+- Consider distance, traffic, and delivery priorities.
+- Coordinate route changes with the Operations team.
+- Record approved route changes.
+
+4. EXCEPTION HANDLING
+- Investigate failed dispatch attempts.
+- Report unavailable delivery resources.
+- Escalate incorrect shipment information.
+- Record the reason for every dispatch exception.
+
+5. ESCALATION LEVELS
+- Level 1: Dispatcher investigates routine operational issues.
+- Level 2: Operations team handles unresolved dispatch problems.
+- Level 3: Operations Manager handles critical or recurring exceptions.
+
+6. RECORD KEEPING
+- Maintain dispatch records.
+- Record assigned resources and timestamps.
+- Document escalation decisions.
+- Update the shipment record after resolution.
+
+END OF DOCUMENT

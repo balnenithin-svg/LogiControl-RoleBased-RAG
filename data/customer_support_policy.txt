@@ -1,0 +1,49 @@
+
+DOCUMENT: Customer Support and Communication Policy
+DOCUMENT_ID: LOG-CUSTOMER-004
+CATEGORY: Customer Support
+
+PURPOSE:
+This policy defines how Customer Support handles shipment enquiries, delivery updates, complaints, and customer communication.
+
+1. CUSTOMER IDENTIFICATION
+- Verify the customer's identity using the approved verification process.
+- Confirm the relevant Order ID.
+- Never disclose another customer's shipment information.
+
+2. SHIPMENT ENQUIRIES
+- Check the latest available shipment status.
+- Review verified tracking records.
+- Provide accurate delivery information.
+- Explain when tracking information is unavailable.
+
+3. DELAY COMMUNICATION
+- Inform customers about confirmed delivery delays.
+- Explain verified reasons for delays.
+- Never invent delay reasons or delivery dates.
+- Provide revised delivery estimates only when confirmed.
+
+4. CUSTOMER COMPLAINTS
+- Record the customer's complaint.
+- Identify the related shipment and issue.
+- Forward operational issues to the Operations team.
+- Track the complaint until resolution.
+
+5. ESCALATION
+- Routine enquiries: Customer Support handles directly.
+- Tracking problems: Escalate to Operations.
+- Dispatch problems: Coordinate with the Dispatcher.
+- Critical unresolved complaints: Escalate to the responsible manager.
+
+6. PROFESSIONAL COMMUNICATION
+- Use clear and respectful language.
+- Avoid unsupported promises.
+- Protect customer information.
+- Maintain records of customer interactions.
+
+7. ISSUE CLOSURE
+- Confirm the resolution with available records.
+- Update the customer interaction history.
+- Close the enquiry after resolution.
+
+END OF DOCUMENT

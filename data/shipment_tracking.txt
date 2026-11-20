@@ -1,0 +1,38 @@
+
+DOCUMENT: Shipment Tracking SOP
+DOCUMENT_ID: LOG-TRACK-001
+CATEGORY: Shipment Tracking
+
+PURPOSE:
+This document defines the standard process for tracking shipments and monitoring delivery progress.
+
+1. SHIPMENT IDENTIFICATION
+- Identify shipments using their unique Order ID.
+- Verify shipment details before providing tracking information.
+- Check the shipment status in the logistics system.
+
+2. TRACKING PROCESS
+- Review the latest available shipment tracking information.
+- Check recorded locations and timestamps.
+- Review shipment milestones and estimated delivery dates.
+- Identify missing or outdated tracking information.
+
+3. SHIPMENT STATUS
+- Pending: Shipment is awaiting processing.
+- Processing: Shipment is being prepared.
+- Shipped: Shipment has been dispatched.
+- In Transit: Shipment is moving through the delivery network.
+- Delivered: Shipment has reached its destination.
+- Delayed: Shipment has not progressed according to its schedule.
+
+4. TRACKING EXCEPTIONS
+- Investigate missing tracking updates.
+- Verify the last recorded location and timestamp.
+- Escalate unresolved tracking issues to the Operations team.
+
+5. CUSTOMER COMMUNICATION
+- Provide customers with verified tracking information.
+- Do not describe historical GPS records as live locations.
+- Communicate uncertainty when tracking information is unavailable.
+
+END OF DOCUMENT
