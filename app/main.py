@@ -10,10 +10,10 @@ from pydantic import BaseModel, Field
 
 from .rag import RoleBasedRAG
 
-# Load environment variables
+# Load local environment variables
 load_dotenv()
 
-# Initialize FastAPI
+# FastAPI application
 app = FastAPI(
     title="LogiControl Role-Based RAG API",
     description="AI Logistics Knowledge Assistant",
@@ -22,17 +22,18 @@ app = FastAPI(
 
 # JWT configuration
 SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+ALGORITHM = "HS256"
+TOKEN_EXPIRY_HOURS = 2
 
 if not SECRET_KEY:
-    raise RuntimeError("JWT_SECRET_KEY is missing from .env")
+    raise RuntimeError("JWT_SECRET_KEY is missing")
 
-ALGORITHM = "HS256"
 security = HTTPBearer()
 
 # Initialize RAG system
 rag = RoleBasedRAG()
 
-# Demo users - passwords are stored in .env
+# Role-based users
 USERS = {
     "admin": {
         "password": os.getenv("ADMIN_PASSWORD"),
@@ -55,8 +56,8 @@ USERS = {
 
 # Request models
 class LoginRequest(BaseModel):
-    username: str
-    password: str
+    username: str = Field(min_length=1)
+    password: str = Field(min_length=1)
 
 
 class ChatRequest(BaseModel):
@@ -68,7 +69,8 @@ def create_token(username: str, role: str):
     payload = {
         "sub": username,
         "role": role,
-        "exp": datetime.now(timezone.utc) + timedelta(hours=2)
+        "exp": datetime.now(timezone.utc)
+        + timedelta(hours=TOKEN_EXPIRY_HOURS)
     }
 
     return jwt.encode(
@@ -78,7 +80,7 @@ def create_token(username: str, role: str):
     )
 
 
-# Verify JWT token and identify user
+# Verify JWT token
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
@@ -92,16 +94,18 @@ def get_current_user(
         username = payload.get("sub")
         role = payload.get("role")
 
-        if username not in USERS:
+        user = USERS.get(username)
+
+        if not user or user["role"] != role:
             raise HTTPException(
                 status_code=401,
-                detail="Invalid user"
+                detail="Invalid user or role"
             )
 
-        if USERS[username]["role"] != role:
+        if not user["password"]:
             raise HTTPException(
                 status_code=401,
-                detail="Invalid user role"
+                detail="User account is not configured"
             )
 
         return {
@@ -109,14 +113,20 @@ def get_current_user(
             "role": role
         }
 
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(
+            status_code=401,
+            detail="Token has expired. Please log in again."
+        )
+
     except jwt.InvalidTokenError:
         raise HTTPException(
             status_code=401,
-            detail="Invalid or expired token"
+            detail="Invalid authentication token"
         )
 
 
-# Health check endpoint
+# Health check
 @app.get("/")
 def home():
     return {
@@ -125,16 +135,17 @@ def home():
     }
 
 
-# User login endpoint
+# Login endpoint
 @app.post("/login")
 def login(request: LoginRequest):
 
-    user = USERS.get(request.username)
+    username = request.username.strip().lower()
+    user = USERS.get(username)
 
     if not user or not user["password"]:
         raise HTTPException(
             status_code=401,
-            detail="Invalid credentials"
+            detail="Invalid credentials or account not configured"
         )
 
     if request.password != user["password"]:
@@ -144,14 +155,16 @@ def login(request: LoginRequest):
         )
 
     token = create_token(
-        request.username,
+        username,
         user["role"]
     )
 
     return {
         "access_token": token,
         "token_type": "bearer",
-        "role": user["role"]
+        "username": username,
+        "role": user["role"],
+        "expires_in": TOKEN_EXPIRY_HOURS * 3600
     }
 
 
@@ -161,7 +174,6 @@ def chat(
     request: ChatRequest,
     current_user: dict = Depends(get_current_user)
 ):
-
     try:
         result = rag.ask(
             question=request.question,
