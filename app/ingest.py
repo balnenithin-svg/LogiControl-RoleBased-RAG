@@ -1,3 +1,4 @@
+
 import os
 from pathlib import Path
 
@@ -20,6 +21,7 @@ ROLE_DOCUMENTS = {
         "delivery_delay_sop.txt",
         "dispatch_escalation_policy.txt",
         "customer_support_policy.txt",
+        "admin_role_policy.txt",
     ],
     "operations": [
         "shipment_tracking.txt",
@@ -35,6 +37,7 @@ ROLE_DOCUMENTS = {
         "customer_support_policy.txt",
     ],
 }
+
 
 def main():
 
@@ -74,14 +77,11 @@ def main():
         )
 
         documents = loader.load()
-
         chunks = splitter.split_documents(documents)
 
         all_documents[file_name] = chunks
 
-        print(
-            f"Loaded {file_name}: {len(chunks)} chunks"
-        )
+        print(f"Loaded {file_name}: {len(chunks)} chunks")
 
     # Create separate vectorstore for every role
     for role, allowed_files in ROLE_DOCUMENTS.items():
@@ -91,9 +91,7 @@ def main():
         for file_name in allowed_files:
 
             if file_name in all_documents:
-                role_documents.extend(
-                    all_documents[file_name]
-                )
+                role_documents.extend(all_documents[file_name])
 
         if not role_documents:
             print(f"No documents available for {role}")
@@ -111,27 +109,15 @@ def main():
             embeddings,
         )
 
-        vectorstore.save_local(
-            str(role_vector_dir)
-        )
+        vectorstore.save_local(str(role_vector_dir))
 
-        print(
-            f"\nSuccessfully created vectorstore for {role}"
-        )
-
-        print(
-            f"Documents: {allowed_files}"
-        )
-
-        print(
-            f"Chunks: {len(role_documents)}"
-        )
-
-        print(
-            f"Saved to: {role_vector_dir}"
-        )
+        print(f"\nSuccessfully created vectorstore for {role}")
+        print(f"Documents: {allowed_files}")
+        print(f"Chunks: {len(role_documents)}")
+        print(f"Saved to: {role_vector_dir}")
 
     print("\nAll role-based vectorstores created successfully!")
+
 
 if __name__ == "__main__":
     main()
