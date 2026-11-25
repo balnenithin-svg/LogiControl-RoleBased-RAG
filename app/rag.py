@@ -9,6 +9,8 @@ from langchain_google_genai import (
 )
 from langchain_community.vectorstores import FAISS
 
+from app.supabase_rag import SupabaseRAG
+
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,6 +22,7 @@ ROLE_DOCUMENTS = {
         "delivery_delay_sop.txt",
         "dispatch_escalation_policy.txt",
         "customer_support_policy.txt",
+        "admin_role_policy.txt",
     ],
     "operations": [
         "shipment_tracking.txt",
@@ -36,6 +39,29 @@ ROLE_DOCUMENTS = {
     ],
 }
 
+ROLE_DOCUMENT_IDS = {
+    "admin": [
+        "LOG-TRACK-001",
+        "LOG-DELAY-002",
+        "LOG-DISPATCH-003",
+        "LOG-CUSTOMER-004",
+        "LOG-ADMIN-001",
+    ],
+    "operations": [
+        "LOG-TRACK-001",
+        "LOG-DELAY-002",
+        "LOG-DISPATCH-003",
+    ],
+    "dispatcher": [
+        "LOG-TRACK-001",
+        "LOG-DISPATCH-003",
+    ],
+    "customer_support": [
+        "LOG-TRACK-001",
+        "LOG-CUSTOMER-004",
+    ],
+}
+
 
 class RoleBasedRAG:
 
@@ -43,11 +69,12 @@ class RoleBasedRAG:
         api_key = os.getenv("GEMINI_API_KEY")
 
         if not api_key:
-            raise RuntimeError("GEMINI_API_KEY is missing from .env")
+            raise RuntimeError("GEMINI_API_KEY is missing")
 
         self.embeddings = GoogleGenerativeAIEmbeddings(
             model="models/gemini-embedding-2",
             google_api_key=api_key,
+            output_dimensionality=768,
         )
 
         self.llm = ChatGoogleGenerativeAI(
@@ -56,7 +83,13 @@ class RoleBasedRAG:
             temperature=0.2,
         )
 
+        # Supabase is now the primary retrieval source.
+        self.supabase_rag = SupabaseRAG()
+
+        # Keep existing FAISS support for rollback.
         self.vectorstores = {}
+
+        print("RoleBasedRAG initialized with Supabase retrieval")
 
     def get_vectorstore(self, role):
         role = role.lower().strip()
@@ -71,8 +104,7 @@ class RoleBasedRAG:
 
         if not role_vector_dir.exists():
             raise RuntimeError(
-                f"Vectorstore for {role} not found. "
-                "Run app/ingest.py first."
+                f"Vectorstore for {role} not found."
             )
 
         vectorstore = FAISS.load_local(
@@ -85,27 +117,26 @@ class RoleBasedRAG:
         return vectorstore
 
     def ask(self, question: str, role: str):
+
         role = role.lower().strip()
 
-        if role not in ROLE_DOCUMENTS:
+        if role not in ROLE_DOCUMENT_IDS:
             raise ValueError("Invalid user role")
 
         if not question or not question.strip():
             raise ValueError("Question cannot be empty")
 
-        print(f"RAG: Loading vectorstore for {role}")
-
-        vectorstore = self.get_vectorstore(role)
-
-        print("RAG: Retrieving relevant documents")
+        print(f"RAG: Verified role: {role}")
+        print("RAG: Retrieving authorized documents from Supabase")
 
         try:
-            results = vectorstore.similarity_search(
-                question,
-                k=4,
+            results = self.supabase_rag.retrieve(
+                question=question.strip(),
+                role=role,
+                limit=5,
             )
         except Exception as error:
-            print("RAG retrieval failed:", repr(error))
+            print("Supabase retrieval failed:", repr(error))
             raise
 
         if not results:
@@ -118,10 +149,31 @@ class RoleBasedRAG:
                 "role": role,
             }
 
+        # Additional application-level permission check.
+        allowed_ids = set(ROLE_DOCUMENT_IDS[role])
+
+        permitted_results = [
+            item for item in results
+            if item.get("document_id") in allowed_ids
+        ]
+
+        if not permitted_results:
+            return {
+                "answer": (
+                    "No relevant information was found "
+                    "in your authorized documents."
+                ),
+                "sources": [],
+                "role": role,
+            }
+
         context = "\n\n".join(
-            f"Source: {Path(doc.metadata.get('source', '')).name}\n"
-            f"{doc.page_content}"
-            for doc in results
+            (
+                f"Source: {item['document_title']}\n"
+                f"Section: {item['section_heading']}\n"
+                f"{item['content']}"
+            )
+            for item in permitted_results
         )
 
         prompt = f"""
@@ -150,7 +202,7 @@ Provide a clear and professional answer.
         try:
             response = self.llm.invoke(prompt)
         except Exception as error:
-            print("RAG generation failed:", repr(error))
+            print("Gemini generation failed:", repr(error))
             raise
 
         answer = response.content
@@ -162,12 +214,12 @@ Provide a clear and professional answer.
                 if isinstance(block, dict)
             )
 
-        sources = list({
-            Path(doc.metadata.get("source", "")).name
-            for doc in results
+        sources = sorted({
+            item["document_title"]
+            for item in permitted_results
         })
 
-        print("RAG: Answer generated successfully")
+        print("RAG: Supabase answer generated successfully")
 
         return {
             "answer": answer,

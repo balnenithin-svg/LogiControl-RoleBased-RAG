@@ -10,3 +10,4 @@ python-dotenv
 pypdf
 python-multipart
 PyJWT
+supabase==2.34.1
