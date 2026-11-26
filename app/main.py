@@ -17,7 +17,7 @@ load_dotenv()
 app = FastAPI(
     title="LogiControl Role-Based RAG API",
     description="AI Logistics Knowledge Assistant",
-    version="1.2.0"
+    version="1.2.1"
 )
 
 # JWT configuration for existing Railway login
@@ -278,7 +278,7 @@ def chat_with_supabase_auth(
         profile_response = (
             supabase
             .table("profiles")
-            .select("role,status")
+            .select("role")
             .eq("id", str(auth_user.id))
             .maybe_single()
             .execute()
@@ -299,20 +299,13 @@ def chat_with_supabase_auth(
             detail="User profile not found"
         )
 
-    # Step 4: Validate actual database role and account status
+    # Step 4: Validate actual database role
     role = profile.get("role")
-    status = str(profile.get("status") or "").lower()
 
     if role not in ALLOWED_ROLES:
         raise HTTPException(
             status_code=403,
             detail="Invalid or unauthorized user role"
-        )
-
-    if status != "active":
-        raise HTTPException(
-            status_code=403,
-            detail="This account is not active"
         )
 
     # Step 5: Execute role-filtered Supabase RAG
