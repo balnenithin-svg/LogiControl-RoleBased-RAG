@@ -83,7 +83,7 @@ class RoleBasedRAG:
             temperature=0.2,
         )
 
-        # Supabase is now the primary retrieval source.
+        # Supabase is the primary retrieval source.
         self.supabase_rag = SupabaseRAG()
 
         # Keep existing FAISS support for rollback.
@@ -139,6 +139,7 @@ class RoleBasedRAG:
             print("Supabase retrieval failed:", repr(error))
             raise
 
+        # Empty retrieval response.
         if not results:
             return {
                 "answer": (
@@ -146,6 +147,7 @@ class RoleBasedRAG:
                     "in your authorized documents."
                 ),
                 "sources": [],
+                "source_details": [],
                 "role": role,
             }
 
@@ -164,9 +166,11 @@ class RoleBasedRAG:
                     "in your authorized documents."
                 ),
                 "sources": [],
+                "source_details": [],
                 "role": role,
             }
 
+        # Build context using authorized Supabase chunks.
         context = "\n\n".join(
             (
                 f"Source: {item['document_title']}\n"
@@ -214,15 +218,31 @@ Provide a clear and professional answer.
                 if isinstance(block, dict)
             )
 
+        # Keep the original sources field for compatibility.
         sources = sorted({
             item["document_title"]
             for item in permitted_results
         })
+
+        # Detailed references for Phase 1 frontend.
+        source_details = [
+            {
+                "chunk_id": item.get("chunk_id"),
+                "document_id": item.get("document_id"),
+                "document_title": item.get("document_title"),
+                "category": item.get("category"),
+                "section_heading": item.get("section_heading"),
+                "content": item.get("content"),
+                "normalized_score": item.get("normalized_score"),
+            }
+            for item in permitted_results
+        ]
 
         print("RAG: Supabase answer generated successfully")
 
         return {
             "answer": answer,
             "sources": sources,
+            "source_details": source_details,
             "role": role,
         }

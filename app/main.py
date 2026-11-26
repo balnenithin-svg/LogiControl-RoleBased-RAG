@@ -17,10 +17,10 @@ load_dotenv()
 app = FastAPI(
     title="LogiControl Role-Based RAG API",
     description="AI Logistics Knowledge Assistant",
-    version="1.0.0"
+    version="1.2.0"
 )
 
-# JWT configuration
+# JWT configuration for existing Railway login
 SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 ALGORITHM = "HS256"
 TOKEN_EXPIRY_HOURS = 2
@@ -33,7 +33,10 @@ security = HTTPBearer()
 # Initialize RAG system
 rag = RoleBasedRAG()
 
-# Role-based users
+# Supabase client initialized inside SupabaseRAG
+supabase = rag.supabase_rag.supabase
+
+# Role-based users for existing Railway login
 USERS = {
     "admin": {
         "password": os.getenv("ADMIN_PASSWORD"),
@@ -53,6 +56,14 @@ USERS = {
     }
 }
 
+# Approved application roles
+ALLOWED_ROLES = {
+    "admin",
+    "operations",
+    "dispatcher",
+    "customer_support"
+}
+
 
 # Request models
 class LoginRequest(BaseModel):
@@ -61,10 +72,10 @@ class LoginRequest(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    question: str = Field(min_length=1)
+    question: str = Field(min_length=1, max_length=1000)
 
 
-# Generate JWT token
+# Generate Railway JWT token
 def create_token(username: str, role: str):
     payload = {
         "sub": username,
@@ -80,7 +91,7 @@ def create_token(username: str, role: str):
     )
 
 
-# Verify JWT token
+# Verify existing Railway JWT token
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
@@ -135,7 +146,7 @@ def home():
     }
 
 
-# Login endpoint
+# Existing Railway login endpoint
 @app.post("/login")
 def login(request: LoginRequest):
 
@@ -168,7 +179,7 @@ def login(request: LoginRequest):
     }
 
 
-# Role-based RAG chat endpoint
+# Existing Railway JWT-based RAG chat endpoint
 @app.post("/chat")
 def chat(
     request: ChatRequest,
@@ -199,4 +210,135 @@ def chat(
         raise HTTPException(
             status_code=500,
             detail="Unable to process the RAG query"
+        )
+
+
+# Supabase-authenticated RAG chat endpoint
+@app.post("/chat/supabase")
+def chat_with_supabase_auth(
+    request: ChatRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    # Step 1: Verify Supabase access token
+    try:
+        auth_response = supabase.auth.get_user(
+            credentials.credentials
+        )
+        auth_user = auth_response.user
+
+    except Exception as error:
+        print("Supabase authentication error:", str(error))
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid or expired Supabase session"
+        )
+
+    if not auth_user:
+        raise HTTPException(
+            status_code=401,
+            detail="Supabase user could not be verified"
+        )
+
+    # Step 2: Check authenticated user metadata
+    app_metadata = getattr(auth_user, "app_metadata", {}) or {}
+
+    if str(app_metadata.get("status", "")).lower() == "inactive":
+        raise HTTPException(
+            status_code=403,
+            detail="This account has been deactivated"
+        )
+
+    banned_until = getattr(auth_user, "banned_until", None)
+
+    if banned_until:
+        try:
+            banned_time = datetime.fromisoformat(
+                str(banned_until).replace("Z", "+00:00")
+            )
+
+            if banned_time.tzinfo is None:
+                banned_time = banned_time.replace(
+                    tzinfo=timezone.utc
+                )
+
+            if banned_time > datetime.now(timezone.utc):
+                raise HTTPException(
+                    status_code=403,
+                    detail="This account is currently suspended"
+                )
+
+        except ValueError:
+            raise HTTPException(
+                status_code=401,
+                detail="Unable to validate account suspension status"
+            )
+
+    # Step 3: Retrieve authoritative role from Supabase profiles
+    try:
+        profile_response = (
+            supabase
+            .table("profiles")
+            .select("role,status")
+            .eq("id", str(auth_user.id))
+            .maybe_single()
+            .execute()
+        )
+
+        profile = profile_response.data
+
+    except Exception as error:
+        print("Supabase profile lookup error:", str(error))
+        raise HTTPException(
+            status_code=503,
+            detail="Unable to verify user profile"
+        )
+
+    if not profile:
+        raise HTTPException(
+            status_code=403,
+            detail="User profile not found"
+        )
+
+    # Step 4: Validate actual database role and account status
+    role = profile.get("role")
+    status = str(profile.get("status") or "").lower()
+
+    if role not in ALLOWED_ROLES:
+        raise HTTPException(
+            status_code=403,
+            detail="Invalid or unauthorized user role"
+        )
+
+    if status != "active":
+        raise HTTPException(
+            status_code=403,
+            detail="This account is not active"
+        )
+
+    # Step 5: Execute role-filtered Supabase RAG
+    try:
+        result = rag.ask(
+            question=request.question,
+            role=role
+        )
+
+        return {
+            "username": auth_user.email or str(auth_user.id),
+            "role": role,
+            "answer": result["answer"],
+            "sources": result["sources"],
+            "source_details": result.get("source_details", [])
+        }
+
+    except ValueError as error:
+        raise HTTPException(
+            status_code=400,
+            detail=str(error)
+        )
+
+    except Exception as error:
+        print("Supabase RAG processing error:", str(error))
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to process the Supabase RAG query"
         )

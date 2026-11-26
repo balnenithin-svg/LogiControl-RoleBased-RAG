@@ -109,3 +109,4 @@ class SupabaseRAG:
         )
 
         return permitted_results
+
